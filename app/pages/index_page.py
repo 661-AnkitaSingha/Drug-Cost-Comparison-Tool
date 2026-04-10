@@ -160,40 +160,6 @@ def index_page() -> rx.Component:
                 class_name="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24",
             )
         ),
-        rx.el.div(
-            rx.el.div(
-                rx.el.div(
-                    rx.el.h2(
-                        "Clinically Equivalent. Lab Verified.",
-                        class_name="text-2xl font-bold text-white mb-2",
-                    ),
-                    rx.el.p(
-                        "Generic medicines contain the exact same active ingredients as branded ones.",
-                        class_name="text-blue-100",
-                    ),
-                    class_name="flex-1 text-center md:text-left",
-                ),
-                rx.el.div(
-                    rx.el.div(
-                        rx.icon("shield-check", class_name="h-6 w-6 text-white mr-2"),
-                        rx.el.span(
-                            "ISO Certified Data", class_name="text-white font-medium"
-                        ),
-                        class_name="flex items-center px-4 py-2 border border-white/20 rounded-lg",
-                    ),
-                    rx.el.div(
-                        rx.icon("award", class_name="h-6 w-6 text-white mr-2"),
-                        rx.el.span(
-                            "Ministry Approved", class_name="text-white font-medium"
-                        ),
-                        class_name="flex items-center px-4 py-2 border border-white/20 rounded-lg",
-                    ),
-                    class_name="flex flex-wrap justify-center gap-4 mt-8 md:mt-0",
-                ),
-                class_name="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between",
-            ),
-            class_name="bg-blue-600 py-12",
-        ),
         footer(),
         chat_widget(),
         auth_modal(),
