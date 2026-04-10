@@ -1,5 +1,6 @@
 import reflex as rx
 from app.states.medicine_state import MedicineState
+from app.states.checkout_state import CheckoutState
 from app.components.navbar import navbar
 from app.components.footer import footer
 from app.components.chat_widget import chat_widget
@@ -124,8 +125,12 @@ def alternative_row(med: dict) -> rx.Component:
         ),
         rx.el.td(
             rx.el.button(
-                "Find Nearby",
-                class_name="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors",
+                rx.icon("shopping-cart", class_name="h-4 w-4 mr-2"),
+                "Add to Cart",
+                on_click=lambda: CheckoutState.add_to_cart(
+                    med["generic_name"].to(str), med["generic_price"].to(float), 1
+                ),
+                class_name="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors",
             )
         ),
         class_name="border-b last:border-0 hover:bg-gray-50/50 transition-colors",

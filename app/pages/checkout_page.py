@@ -1,7 +1,7 @@
 import reflex as rx
 import reflex_enterprise as rxe
 from reflex_enterprise.components.map.types import latlng
-from app.states.checkout_state import CheckoutState
+from app.states.checkout_state import CheckoutState, CITY_PHARMACIES
 from app.components.navbar import navbar
 from app.components.footer import footer
 from app.components.chat_widget import chat_widget
@@ -12,14 +12,42 @@ def cart_item_row(item: dict) -> rx.Component:
     return rx.el.div(
         rx.el.div(
             rx.el.h4(item["name"], class_name="text-sm font-semibold text-gray-900"),
-            rx.el.p(
-                f"{item['qty']} × ₹{item['price']}", class_name="text-xs text-gray-500"
+            rx.el.div(
+                rx.el.button(
+                    rx.icon("minus", class_name="h-3 w-3"),
+                    on_click=lambda: CheckoutState.update_qty(
+                        item["name"], item["qty"].to(int) - 1
+                    ),
+                    class_name="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded p-1",
+                ),
+                rx.el.span(
+                    item["qty"].to(str), class_name="text-xs font-bold w-4 text-center"
+                ),
+                rx.el.button(
+                    rx.icon("plus", class_name="h-3 w-3"),
+                    on_click=lambda: CheckoutState.update_qty(
+                        item["name"], item["qty"].to(int) + 1
+                    ),
+                    class_name="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded p-1",
+                ),
+                rx.el.span(
+                    f"× ₹{item['price']}", class_name="text-xs text-gray-500 ml-2"
+                ),
+                class_name="flex items-center gap-2 mt-1",
             ),
             class_name="flex-1",
         ),
-        rx.el.p(
-            f"₹{item['price'].to(float) * item['qty'].to(float)}",
-            class_name="text-sm font-bold text-gray-900",
+        rx.el.div(
+            rx.el.p(
+                f"₹{item['price'].to(float) * item['qty'].to(float)}",
+                class_name="text-sm font-bold text-gray-900 mr-3",
+            ),
+            rx.el.button(
+                rx.icon("x", class_name="h-4 w-4 text-gray-400 hover:text-red-500"),
+                on_click=lambda: CheckoutState.remove_from_cart(item["name"]),
+                class_name="p-1",
+            ),
+            class_name="flex items-center",
         ),
         class_name="flex justify-between items-center py-3 border-b border-gray-50 last:border-0",
     )
@@ -39,8 +67,22 @@ def order_summary() -> rx.Component:
             ),
             class_name="flex justify-between items-center mb-4",
         ),
-        rx.el.div(
-            rx.foreach(CheckoutState.cart_items, cart_item_row), class_name="mb-4"
+        rx.cond(
+            CheckoutState.cart_items.length() > 0,
+            rx.el.div(
+                rx.foreach(CheckoutState.cart_items, cart_item_row), class_name="mb-4"
+            ),
+            rx.el.div(
+                rx.el.p(
+                    "Your cart is empty",
+                    class_name="text-sm text-gray-500 text-center py-4",
+                ),
+                rx.el.a(
+                    "Back to Search",
+                    href="/",
+                    class_name="text-xs text-blue-600 hover:underline block text-center mb-4",
+                ),
+            ),
         ),
         rx.el.div(
             rx.el.p("Total", class_name="font-bold text-gray-900"),
@@ -101,9 +143,36 @@ def address_form() -> rx.Component:
                 ),
                 class_name="flex items-center bg-blue-50 p-3 rounded-xl mb-4",
             ),
+            rx.fragment(),
         ),
         rx.el.form(
             rx.el.div(
+                rx.el.div(
+                    rx.el.div(
+                        rx.icon(
+                            "building",
+                            class_name="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none",
+                        ),
+                        rx.el.select(
+                            rx.foreach(
+                                list(CITY_PHARMACIES.keys()),
+                                lambda city: rx.el.option(city, value=city),
+                            ),
+                            value=CheckoutState.selected_city,
+                            on_change=CheckoutState.set_city,
+                            class_name="w-full pl-12 pr-10 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 focus:ring-0 bg-gray-50 focus:bg-white outline-none transition-colors appearance-none font-semibold text-gray-800",
+                        ),
+                        rx.icon(
+                            "chevron-down",
+                            class_name="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none",
+                        ),
+                        class_name="relative mb-2",
+                    ),
+                    rx.el.p(
+                        f"{CheckoutState.shop_name} — {CheckoutState.shop_address}",
+                        class_name="text-xs text-gray-500 ml-1 mb-6",
+                    ),
+                ),
                 rx.el.div(
                     rx.icon(
                         "home",
@@ -237,7 +306,8 @@ def resolved_address_view() -> rx.Component:
                 f"Place Order — ₹{CheckoutState.cart_total}",
             ),
             on_click=CheckoutState.submit_order,
-            disabled=CheckoutState.order_loading,
+            disabled=CheckoutState.order_loading
+            | (CheckoutState.cart_items.length() == 0),
             class_name="w-full mt-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-green-200 disabled:opacity-70",
         ),
         class_name="bg-white p-6 rounded-2xl shadow-sm border border-green-200",

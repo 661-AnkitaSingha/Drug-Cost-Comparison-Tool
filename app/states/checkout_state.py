@@ -5,6 +5,57 @@ import asyncio
 import math
 import logging
 
+CITY_PHARMACIES = {
+    "Jamshedpur": {
+        "name": "MediSmart Pharmacy, Bistupur",
+        "lat": 22.8046,
+        "lng": 86.2029,
+        "address": "Main Road, Bistupur, Jamshedpur 831001",
+    },
+    "Mumbai": {
+        "name": "MediSmart Pharmacy, Andheri",
+        "lat": 19.1197,
+        "lng": 72.8464,
+        "address": "SV Road, Andheri West, Mumbai 400058",
+    },
+    "Delhi": {
+        "name": "MediSmart Pharmacy, Connaught Place",
+        "lat": 28.6315,
+        "lng": 77.2167,
+        "address": "Block A, Connaught Place, New Delhi 110001",
+    },
+    "Bangalore": {
+        "name": "MediSmart Pharmacy, Koramangala",
+        "lat": 12.9352,
+        "lng": 77.6245,
+        "address": "80 Feet Road, Koramangala, Bangalore 560034",
+    },
+    "Kolkata": {
+        "name": "MediSmart Pharmacy, Park Street",
+        "lat": 22.551,
+        "lng": 88.3521,
+        "address": "Park Street, Kolkata 700016",
+    },
+    "Chennai": {
+        "name": "MediSmart Pharmacy, T Nagar",
+        "lat": 13.0418,
+        "lng": 80.2341,
+        "address": "Usman Road, T Nagar, Chennai 600017",
+    },
+    "Hyderabad": {
+        "name": "MediSmart Pharmacy, Banjara Hills",
+        "lat": 17.4156,
+        "lng": 78.4347,
+        "address": "Road No 12, Banjara Hills, Hyderabad 500034",
+    },
+    "Pune": {
+        "name": "MediSmart Pharmacy, FC Road",
+        "lat": 18.5273,
+        "lng": 73.8407,
+        "address": "Fergusson College Road, Pune 411004",
+    },
+}
+
 
 class CheckoutState(rx.State):
     house_no: str = ""
@@ -14,10 +65,11 @@ class CheckoutState(rx.State):
     address_error: str = ""
     is_geocoding: bool = False
     geocode_status: str = ""
+    selected_city: str = "Jamshedpur"
     shop_lat: float = 22.8046
     shop_lng: float = 86.2029
     shop_name: str = "MediSmart Pharmacy, Bistupur"
-    shop_address: str = "Main Road, Bistupur, Jamshedpur, Jharkhand 831001"
+    shop_address: str = "Main Road, Bistupur, Jamshedpur 831001"
     user_lat: float = 0.0
     user_lng: float = 0.0
     user_address_resolved: str = ""
@@ -42,6 +94,44 @@ class CheckoutState(rx.State):
     @rx.var
     def cart_item_count(self) -> int:
         return sum((item["qty"] for item in self.cart_items))
+
+    @rx.event
+    def set_city(self, city: str):
+        self.selected_city = city
+        if city in CITY_PHARMACIES:
+            pharmacy = CITY_PHARMACIES[city]
+            self.shop_name = pharmacy["name"]
+            self.shop_address = pharmacy["address"]
+            self.shop_lat = pharmacy["lat"]
+            self.shop_lng = pharmacy["lng"]
+            self.map_center = latlng(lat=self.shop_lat, lng=self.shop_lng)
+            self.map_zoom = 13.0
+            self.has_user_location = False
+            self.user_lat = 0.0
+            self.user_lng = 0.0
+            self.user_address_resolved = ""
+            self.route_positions = []
+
+    @rx.event
+    def add_to_cart(self, name: str, price: float, qty: int = 1):
+        for item in self.cart_items:
+            if item["name"] == name:
+                item["qty"] += qty
+                yield rx.toast(f"Added another {name} to cart", duration=2000)
+                return
+        self.cart_items.append({"name": name, "qty": qty, "price": float(price)})
+        yield rx.toast(f"Added {name} to cart", duration=2000)
+
+    @rx.event
+    def remove_from_cart(self, name: str):
+        self.cart_items = [item for item in self.cart_items if item["name"] != name]
+
+    @rx.event
+    def update_qty(self, name: str, qty: int):
+        for item in self.cart_items:
+            if item["name"] == name:
+                item["qty"] = max(1, qty)
+                break
 
     @rx.var
     def full_address(self) -> str:
