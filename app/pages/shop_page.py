@@ -25,8 +25,8 @@ def product_card(med: dict) -> rx.Component:
     savings_amt = med["brand_price"].to(float) - med["generic_price"].to(float)
     savings_pct = rx.cond(
         med["brand_price"].to(float) > 0,
-        savings_amt / med["brand_price"].to(float) * 100,
-        0.0,
+        (savings_amt / med["brand_price"].to(float) * 100).to(int),
+        0,
     )
     cat_color = rx.match(
         med["category"].to(str),

@@ -12,8 +12,8 @@ def alternative_row(alt: dict) -> rx.Component:
     savings_amt = CompareState.med_price_original - alt["price"].to(float)
     savings_pct = rx.cond(
         CompareState.med_price_original > 0,
-        savings_amt / CompareState.med_price_original * 100,
-        0.0,
+        (savings_amt / CompareState.med_price_original * 100).to(int),
+        0,
     )
     return rx.el.tr(
         rx.el.td(

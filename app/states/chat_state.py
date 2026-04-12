@@ -3,6 +3,247 @@ import asyncio
 from typing import TypedDict
 from app.states.medicine_state import MedicineState
 
+SYMPTOM_MEDICINE_MAP = {
+    "headache": [
+        {
+            "brand": "Crocin 500mg",
+            "generic": "Paracetamol 500mg",
+            "price_brand": 40,
+            "price_generic": 8,
+            "dosage": "1-2 tablets every 4-6 hours, max 8/day",
+            "note": "First-line treatment. Safe for most patients.",
+        },
+        {
+            "brand": "Combiflam",
+            "generic": "Ibuprofen+Paracetamol",
+            "price_brand": 45,
+            "price_generic": 12,
+            "dosage": "1 tablet after meals, max 3/day",
+            "note": "Better for pain with inflammation. Avoid on empty stomach.",
+        },
+    ],
+    "fever": [
+        {
+            "brand": "Dolo 650",
+            "generic": "Paracetamol 650mg",
+            "price_brand": 30,
+            "price_generic": 10,
+            "dosage": "1 tablet every 6-8 hours, max 4/day",
+            "note": "Higher dose for moderate to high fever.",
+        },
+        {
+            "brand": "Crocin 500mg",
+            "generic": "Paracetamol 500mg",
+            "price_brand": 40,
+            "price_generic": 8,
+            "dosage": "1-2 tablets every 4-6 hours",
+            "note": "Standard dose for mild fever.",
+        },
+    ],
+    "acidity": [
+        {
+            "brand": "Pan 40",
+            "generic": "Pantoprazole 40mg",
+            "price_brand": 150,
+            "price_generic": 18,
+            "dosage": "1 tablet 30 min before breakfast",
+            "note": "PPI — best taken on empty stomach.",
+        }
+    ],
+    "allergy": [
+        {
+            "brand": "Allegra 120mg",
+            "generic": "Fexofenadine 120mg",
+            "price_brand": 180,
+            "price_generic": 30,
+            "dosage": "1 tablet daily",
+            "note": "Non-drowsy. Avoid fruit juices (reduces absorption).",
+        }
+    ],
+    "joint pain": [
+        {
+            "brand": "Voveran SR 100",
+            "generic": "Diclofenac SR 100mg",
+            "price_brand": 95,
+            "price_generic": 14,
+            "dosage": "1 tablet after meals, max 2/day",
+            "note": "Do NOT crush SR tablets. Take with food.",
+        },
+        {
+            "brand": "Combiflam",
+            "generic": "Ibuprofen+Paracetamol",
+            "price_brand": 45,
+            "price_generic": 12,
+            "dosage": "1 tablet after meals",
+            "note": "Lighter option for mild joint pain.",
+        },
+    ],
+    "diabetes": [
+        {
+            "brand": "Glycomet 500",
+            "generic": "Metformin 500mg",
+            "price_brand": 60,
+            "price_generic": 10,
+            "dosage": "1 tablet twice daily with meals",
+            "note": "First-line for Type 2 diabetes. Monitor B12 long-term.",
+        }
+    ],
+    "cold": [
+        {
+            "brand": "Crocin 500mg",
+            "generic": "Paracetamol 500mg",
+            "price_brand": 40,
+            "price_generic": 8,
+            "dosage": "1-2 tablets every 4-6 hours",
+            "note": "For body ache and mild fever from cold.",
+        },
+        {
+            "brand": "Allegra 120mg",
+            "generic": "Fexofenadine 120mg",
+            "price_brand": 180,
+            "price_generic": 30,
+            "dosage": "1 tablet daily",
+            "note": "For runny nose and sneezing.",
+        },
+    ],
+    "stomach pain": [
+        {
+            "brand": "Pan 40",
+            "generic": "Pantoprazole 40mg",
+            "price_brand": 150,
+            "price_generic": 18,
+            "dosage": "1 tablet before breakfast",
+            "note": "If acid-related. Consult doctor if persistent.",
+        }
+    ],
+    "high blood pressure": [
+        {
+            "brand": "Telma 40",
+            "generic": "Telmisartan 40mg",
+            "price_brand": 110,
+            "price_generic": 15,
+            "dosage": "1 tablet daily",
+            "note": "Do not use during pregnancy. Monitor BP regularly.",
+        }
+    ],
+    "cholesterol": [
+        {
+            "brand": "Atorva 10",
+            "generic": "Atorvastatin 10mg",
+            "price_brand": 85,
+            "price_generic": 12,
+            "dosage": "1 tablet at bedtime",
+            "note": "Report unexplained muscle pain. Avoid grapefruit.",
+        }
+    ],
+    "thyroid": [
+        {
+            "brand": "Thyronorm 50",
+            "generic": "Levothyroxine 50mcg",
+            "price_brand": 140,
+            "price_generic": 15,
+            "dosage": "1 tablet empty stomach in morning, 30min before food",
+            "note": "⚠️ Narrow Therapeutic Index — do NOT switch brands without doctor approval.",
+        }
+    ],
+}
+DRUG_INTERACTIONS = [
+    {
+        "drugs": ["ibuprofen", "diclofenac", "combiflam", "voveran", "nsaid"],
+        "warning": "⚠️ CRITICAL: Do NOT combine multiple NSAIDs (Ibuprofen, Diclofenac, Combiflam, Voveran). Risk of stomach bleeding and kidney damage.",
+    },
+    {
+        "drugs": ["ibuprofen", "aspirin", "blood thinner", "warfarin"],
+        "warning": "⚠️ CRITICAL: NSAIDs + Blood thinners increase bleeding risk significantly. Consult doctor immediately.",
+    },
+    {
+        "drugs": ["paracetamol", "crocin", "dolo", "calpol"],
+        "warning": "⚠️ WARNING: Do not combine multiple paracetamol products (Crocin + Dolo + Calpol all contain Paracetamol). Max 4g/day to avoid liver damage.",
+    },
+    {
+        "drugs": ["metformin", "alcohol"],
+        "warning": "⚠️ WARNING: Metformin + Alcohol increases risk of lactic acidosis. Avoid alcohol with diabetes medication.",
+    },
+    {
+        "drugs": ["pantoprazole", "clopidogrel"],
+        "warning": "⚠️ WARNING: Pantoprazole may reduce the effectiveness of Clopidogrel (blood thinner). Use Ranitidine instead if needed.",
+    },
+    {
+        "drugs": ["fexofenadine", "fruit juice", "grapefruit"],
+        "warning": "ℹ️ NOTE: Fruit juices (especially grapefruit) reduce Fexofenadine absorption by up to 36%. Take with water only.",
+    },
+    {
+        "drugs": ["levothyroxine", "thyronorm", "calcium", "iron"],
+        "warning": "⚠️ WARNING: Take Levothyroxine at least 4 hours apart from Calcium or Iron supplements — they block absorption.",
+    },
+    {
+        "drugs": ["atorvastatin", "grapefruit"],
+        "warning": "⚠️ WARNING: Grapefruit increases Atorvastatin levels in blood, raising risk of muscle damage. Avoid large amounts.",
+    },
+]
+SIDE_EFFECTS_DB = {
+    "paracetamol": {
+        "common": "Nausea, rash (rare)",
+        "serious": "Liver damage with overdose (>4g/day)",
+        "avoid": "Alcohol, other paracetamol products",
+    },
+    "ibuprofen": {
+        "common": "Stomach pain, nausea, dizziness",
+        "serious": "Stomach ulcers, kidney problems with long-term use",
+        "avoid": "Empty stomach, other NSAIDs, blood thinners",
+    },
+    "pantoprazole": {
+        "common": "Headache, diarrhea, flatulence",
+        "serious": "B12/Magnesium deficiency with prolonged use",
+        "avoid": "Taking after meals (take 30min before food)",
+    },
+    "fexofenadine": {
+        "common": "Headache, nausea (rare)",
+        "serious": "Very safe profile — rarely causes drowsiness",
+        "avoid": "Fruit juices (reduces absorption)",
+    },
+    "metformin": {
+        "common": "Nausea, diarrhea, metallic taste",
+        "serious": "Lactic acidosis (very rare), B12 deficiency",
+        "avoid": "Alcohol, skipping meals",
+    },
+    "diclofenac": {
+        "common": "Stomach pain, nausea, headache",
+        "serious": "GI bleeding, cardiovascular risk with long-term use",
+        "avoid": "Empty stomach, other NSAIDs, blood thinners",
+    },
+    "telmisartan": {
+        "common": "Dizziness, back pain",
+        "serious": "Hyperkalemia (high potassium)",
+        "avoid": "Pregnancy, potassium supplements",
+    },
+    "atorvastatin": {
+        "common": "Muscle aches, headache",
+        "serious": "Rhabdomyolysis (severe muscle breakdown — rare)",
+        "avoid": "Grapefruit, heavy alcohol",
+    },
+    "levothyroxine": {
+        "common": "Hair loss initially, weight changes",
+        "serious": "Heart palpitations if dose too high",
+        "avoid": "Calcium, iron, soy within 4 hours",
+    },
+    "azithromycin": {
+        "common": "Nausea, diarrhea, stomach pain",
+        "serious": "QT prolongation (heart rhythm — rare)",
+        "avoid": "Antacids within 2 hours",
+    },
+    "cefixime": {
+        "common": "Diarrhea, nausea",
+        "serious": "Severe allergic reaction (rare)",
+        "avoid": "Stopping course early",
+    },
+    "amoxicillin": {
+        "common": "Diarrhea, rash, nausea",
+        "serious": "Severe allergic reaction, C. diff colitis",
+        "avoid": "Stopping course early, allergy to penicillin",
+    },
+}
+
 
 class ChatMessage(TypedDict):
     role: str
@@ -20,14 +261,14 @@ class ChatState(rx.State):
     current_message: str = ""
     is_typing: bool = False
     suggested_questions: list[str] = [
+        "I have headache and fever",
+        "Side effects of Paracetamol?",
+        "Can I take Combiflam with Voveran?",
+        "Best medicine for acidity",
+        "Dosage for Pan 40",
+        "I have joint pain and diabetes",
         "Analyze Crocin 500mg",
-        "Compare alternatives for Pan 40",
-        "Is Augmentin 625 safe to substitute?",
         "What are generic medicines?",
-        "How much can I save with generics?",
-        "Analyze Thyronorm 50",
-        "Find alternatives for Glycomet 500",
-        "What is bioequivalence?",
     ]
 
     @rx.event
@@ -47,6 +288,153 @@ class ChatState(rx.State):
         await asyncio.sleep(0.8)
         lower_text = user_text.lower()
         response = ""
+        is_substitution_query = any(
+            (
+                w in lower_text
+                for w in [
+                    "unavailable",
+                    "not available",
+                    "out of stock",
+                    "alternative for",
+                    "substitute for",
+                    "replacement for",
+                    "instead of",
+                ]
+            )
+        )
+        if is_substitution_query:
+            from app.states.medicine_state import MEDICINE_DATABASE
+
+            found_med_key = None
+            for key, data in MEDICINE_DATABASE.items():
+                if data["brand_name"].lower() in lower_text or key in lower_text:
+                    found_med_key = key
+                    break
+            if found_med_key:
+                med = MEDICINE_DATABASE[found_med_key]
+                best_alt = min(med["alternatives"], key=lambda x: x["price"])
+                jan_aushadhi = [
+                    a for a in med["alternatives"] if "Jan Aushadhi" in a["type"]
+                ]
+                response = f"🔄 Smart Substitution: {med['brand_name']} Unavailable?\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n✅ BEST ALTERNATIVE: {best_alt['name']}\n• Type: {best_alt['type']}\n• Salt Match: {best_alt['salt_match']}\n• Price: ₹{best_alt['price']} (Save ₹{med['price_original'] - best_alt['price']})\n• Regulatory: {best_alt['regulatory_badge']}\n\n🚦 Substitution Safety: {med['substitution_safety']}\n{med['substitution_note']}\n"
+                if jan_aushadhi:
+                    ja = jan_aushadhi[0]
+                    response += f"\n🏥 JAN AUSHADHI OPTION: {ja['name']}\n• Price: ₹{ja['price']} (Cheapest verified option)\n• Available at 9,000+ Jan Aushadhi Kendras across India\n"
+                response += f"\n📍 Find nearby: Use our Pharmacy Locator → /locator\n🛒 Buy generic online → /shop\n\n⚠️ Always confirm substitutions with your doctor or pharmacist."
+                return response
+        found_symptoms = []
+        for symptom in SYMPTOM_MEDICINE_MAP.keys():
+            if symptom in lower_text:
+                found_symptoms.append(symptom)
+        if found_symptoms:
+            response_lines = [
+                f"🩺 Symptom Analysis: {' + '.join((s.title() for s in found_symptoms))}"
+            ]
+            response_lines.append("""━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+""")
+            response_lines.append("""Based on your symptoms, here are recommended medicines:
+""")
+            suggested_meds = []
+            for symptom in found_symptoms:
+                response_lines.append(f"💊 For {symptom.title()}:")
+                for med in SYMPTOM_MEDICINE_MAP[symptom]:
+                    savings_pct = (
+                        int(
+                            (med["price_brand"] - med["price_generic"])
+                            / med["price_brand"]
+                            * 100
+                        )
+                        if med["price_brand"]
+                        else 0
+                    )
+                    response_lines.append(f"┌─────────────────────────────────────┐")
+                    response_lines.append(
+                        f"│ Brand: {med['brand']} → Generic: {med['generic']}"
+                    )
+                    response_lines.append(
+                        f"│ 💰 ₹{med['price_brand']} → ₹{med['price_generic']} (Save {savings_pct}%)"
+                    )
+                    response_lines.append(f"│ 📋 Dosage: {med['dosage']}")
+                    response_lines.append(f"│ ℹ️ {med['note']}")
+                    response_lines.append(f"└─────────────────────────────────────┘")
+                    suggested_meds.append(med["generic"].split()[0].lower())
+                    suggested_meds.append(med["brand"].split()[0].lower())
+            warnings = []
+            for interaction in DRUG_INTERACTIONS:
+                matched_drugs = [
+                    d
+                    for d in interaction["drugs"]
+                    if any((d in sm for sm in suggested_meds))
+                ]
+                if len(matched_drugs) >= 2:
+                    warnings.append(interaction["warning"])
+            if warnings:
+                warnings = list(dict.fromkeys(warnings))
+                response_lines.append("""
+⚠️ DRUG INTERACTION ALERTS:""")
+                for w in warnings:
+                    response_lines.append(f"• {w}")
+            response_lines.append("""
+🏥 Find these at your nearest pharmacy → /locator""")
+            response_lines.append("🛒 Buy online from our shop → /shop")
+            response_lines.append("""
+⚠️ Always consult a doctor before starting any medication.""")
+            return """
+""".join(response_lines)
+        is_interaction_query = any(
+            (
+                w in lower_text
+                for w in ["interaction", "combine", "mix", "together", "with"]
+            )
+        )
+        if is_interaction_query:
+            warnings = []
+            for interaction in DRUG_INTERACTIONS:
+                matched = [d for d in interaction["drugs"] if d in lower_text]
+                if len(matched) >= 1:
+                    warnings.append(interaction["warning"])
+            if warnings:
+                warnings = list(dict.fromkeys(warnings))
+                return (
+                    """⚠️ DRUG INTERACTION ALERTS:
+"""
+                    + """
+""".join((f"• {w}" for w in warnings))
+                    + """
+
+⚠️ Always consult a doctor before starting any medication."""
+                )
+        is_side_effect_query = any(
+            (w in lower_text for w in ["side effect", "reaction", "adverse", "risk"])
+        )
+        if is_side_effect_query:
+            for drug, info in SIDE_EFFECTS_DB.items():
+                if drug in lower_text:
+                    return f"📋 Side Effects Profile: {drug.title()}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n🔹 Common: {info['common']}\n🔸 Serious: {info['serious']}\n⛔ Avoid: {info['avoid']}\n\n⚠️ Always consult a doctor before starting any medication."
+            for symptoms, meds in SYMPTOM_MEDICINE_MAP.items():
+                for med in meds:
+                    brand_lower = med["brand"].lower()
+                    if brand_lower.split()[0] in lower_text:
+                        generic_key = med["generic"].split()[0].lower()
+                        if generic_key in SIDE_EFFECTS_DB:
+                            info = SIDE_EFFECTS_DB[generic_key]
+                            return f"📋 Side Effects Profile: {med['brand']} ({generic_key.title()})\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n🔹 Common: {info['common']}\n🔸 Serious: {info['serious']}\n⛔ Avoid: {info['avoid']}\n\n⚠️ Always consult a doctor before starting any medication."
+        is_dosage_query = any(
+            (
+                w in lower_text
+                for w in ["dose", "dosage", "how much", "how many", "how to take"]
+            )
+        )
+        if is_dosage_query:
+            for symptoms, meds in SYMPTOM_MEDICINE_MAP.items():
+                for med in meds:
+                    brand_lower = med["brand"].lower()
+                    generic_lower = med["generic"].lower()
+                    if (
+                        brand_lower.split()[0] in lower_text
+                        or generic_lower.split()[0] in lower_text
+                    ):
+                        return f"📋 Dosage Information: {med['brand']}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💊 Recommended Dosage: {med['dosage']}\nℹ️ Note: {med['note']}\n\n⚠️ Always consult a doctor before starting any medication."
         from app.states.medicine_state import MEDICINE_DATABASE
 
         found_med_key = None

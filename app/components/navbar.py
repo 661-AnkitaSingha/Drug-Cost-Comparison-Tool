@@ -77,6 +77,7 @@ def navbar() -> rx.Component:
                 ),
                 rx.el.div(
                     nav_link("Home", "/"),
+                    nav_link("Dashboard", "/dashboard"),
                     nav_link("MediCompare", "/compare"),
                     nav_link("Upload Prescription", "/upload"),
                     nav_link("Pharmacy Locator", "/locator"),
@@ -153,6 +154,11 @@ def navbar() -> rx.Component:
                         rx.el.a(
                             "Home",
                             href="/",
+                            class_name="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md",
+                        ),
+                        rx.el.a(
+                            "Dashboard",
+                            href="/dashboard",
                             class_name="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md",
                         ),
                         rx.el.a(

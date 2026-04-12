@@ -62,6 +62,42 @@ def typing_indicator() -> rx.Component:
     )
 
 
+def quick_symptoms_chips() -> rx.Component:
+    symptoms = [
+        ("🤕", "Headache"),
+        ("🤒", "Fever"),
+        ("🔥", "Acidity"),
+        ("🤧", "Allergy"),
+        ("🦴", "Joint Pain"),
+        ("🤒", "Cold"),
+    ]
+    return rx.cond(
+        ChatState.messages.length() <= 2,
+        rx.el.div(
+            rx.el.p(
+                "Quick symptoms:",
+                class_name="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 px-3 pt-2",
+            ),
+            rx.el.div(
+                rx.foreach(
+                    symptoms,
+                    lambda s: rx.el.button(
+                        rx.el.span(s[0], class_name="mr-1"),
+                        s[1],
+                        on_click=lambda: ChatState.send_suggested_question(
+                            f"I have {s[1].lower()}"
+                        ),
+                        class_name="text-xs text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 whitespace-nowrap transition-colors flex-shrink-0 flex items-center shadow-sm",
+                    ),
+                ),
+                class_name="flex flex-wrap gap-1.5 px-3 pb-2",
+            ),
+            class_name="bg-gray-50 border-t border-gray-100",
+        ),
+        rx.fragment(),
+    )
+
+
 def chat_widget() -> rx.Component:
     return rx.el.div(
         rx.cond(
@@ -93,6 +129,7 @@ def chat_widget() -> rx.Component:
                     id="chat-messages",
                     class_name="p-4 h-80 md:h-96 overflow-y-auto bg-white",
                 ),
+                quick_symptoms_chips(),
                 rx.el.div(
                     rx.foreach(ChatState.suggested_questions, suggested_question_chip),
                     class_name="flex overflow-x-auto gap-2 p-3 bg-gray-50 border-t border-gray-100 scrollbar-hide",

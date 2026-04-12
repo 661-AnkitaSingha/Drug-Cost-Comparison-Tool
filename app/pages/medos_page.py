@@ -118,7 +118,7 @@ def medicine_recommendation_row(med: dict) -> rx.Component:
     savings_amt = med["brand_price"].to(int) - med["generic_price"].to(int)
     savings_pct = rx.cond(
         med["brand_price"].to(int) > 0,
-        savings_amt / med["brand_price"].to(int) * 100,
+        (savings_amt / med["brand_price"].to(int) * 100).to(int),
         0,
     )
     return rx.el.div(

@@ -42,11 +42,21 @@ def processing_indicator() -> rx.Component:
 
 
 def extracted_medicine_card(med: ExtractedMedicine) -> rx.Component:
+    savings_amt = med["brand_price"].to(float) - med["generic_price"].to(float)
+    savings_pct = rx.cond(
+        med["brand_price"].to(float) > 0,
+        (
+            (med["brand_price"].to(float) - med["generic_price"].to(float))
+            * 100
+            / med["brand_price"].to(float)
+        ).to(int),
+        0,
+    )
     return rx.el.div(
         rx.el.div(
             rx.el.div(
                 rx.el.div(
-                    rx.el.h4(med["name"], class_name="text-lg font-bold text-gray-900"),
+                    rx.el.h4(med["name"], class_name="text-xl font-bold text-gray-900"),
                     rx.el.div(
                         rx.match(
                             rx.cond(
@@ -57,19 +67,22 @@ def extracted_medicine_card(med: ExtractedMedicine) -> rx.Component:
                             (
                                 "high",
                                 rx.el.span(
-                                    f"{med['confidence']}% Confidence",
+                                    rx.el.span(med["confidence"].to(str)),
+                                    rx.el.span("% Confidence"),
                                     class_name="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-100 text-green-700",
                                 ),
                             ),
                             (
                                 "medium",
                                 rx.el.span(
-                                    f"{med['confidence']}% Confidence",
+                                    rx.el.span(med["confidence"].to(str)),
+                                    rx.el.span("% Confidence"),
                                     class_name="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700",
                                 ),
                             ),
                             rx.el.span(
-                                f"{med['confidence']}% Confidence",
+                                rx.el.span(med["confidence"].to(str)),
+                                rx.el.span("% Confidence"),
                                 class_name="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-700",
                             ),
                         ),
@@ -80,76 +93,75 @@ def extracted_medicine_card(med: ExtractedMedicine) -> rx.Component:
                 rx.el.div(
                     expiry_badge(med["expiry_date"]),
                     rx.el.p(
-                        "Extracted Brand",
+                        "Extracted Item",
                         class_name="text-[10px] text-gray-400 font-bold uppercase mt-2",
                     ),
                     class_name="text-right",
                 ),
-                class_name="flex justify-between items-start border-b border-gray-50 pb-4",
+                class_name="flex justify-between items-start border-b border-gray-100 pb-4",
             ),
             rx.el.div(
                 rx.el.div(
                     rx.el.p(
-                        "Matched Generic Alternative",
-                        class_name="text-xs text-gray-500 font-medium mb-1",
+                        "Verified Generic Alternative",
+                        class_name="text-xs text-blue-600 font-bold uppercase tracking-tight mb-1",
                     ),
                     rx.el.p(
                         med["generic_name"],
-                        class_name="text-base font-bold text-blue-600",
+                        class_name="text-lg font-extrabold text-gray-900",
                     ),
                     rx.el.p(
                         med["salt_composition"],
-                        class_name="text-xs text-gray-500 truncate",
+                        class_name="text-sm text-gray-500 italic",
                     ),
                     class_name="py-4",
                 ),
                 rx.el.div(
                     rx.el.div(
                         rx.el.p(
-                            "Brand Price",
-                            class_name="text-[10px] text-gray-400 font-bold uppercase",
+                            rx.el.span("₹"),
+                            rx.el.span(med["brand_price"].to(str)),
+                            class_name="text-sm font-bold text-gray-400 line-through",
                         ),
+                        rx.icon("arrow-right", class_name="h-4 w-4 text-gray-300 mx-2"),
                         rx.el.p(
-                            f"₹{med['brand_price']}",
-                            class_name="text-sm font-bold text-gray-500 line-through",
+                            rx.el.span("₹"),
+                            rx.el.span(med["generic_price"].to(str)),
+                            class_name="text-3xl font-black text-green-600",
                         ),
+                        class_name="flex items-center",
                     ),
                     rx.el.div(
-                        rx.el.p(
-                            "Generic Price",
-                            class_name="text-[10px] text-gray-400 font-bold uppercase",
+                        rx.el.div(
+                            rx.el.span("Save ₹", class_name="font-bold"),
+                            rx.el.span(
+                                savings_amt.to(int).to(str), class_name="font-bold"
+                            ),
+                            class_name="text-xs text-green-700",
                         ),
-                        rx.el.p(
-                            f"₹{med['generic_price']}",
-                            class_name="text-lg font-extrabold text-green-600",
+                        rx.el.div(
+                            rx.el.span("("),
+                            rx.el.span(savings_pct.to(str)),
+                            rx.el.span("% Off)"),
+                            class_name="text-[10px] font-medium text-green-600",
                         ),
+                        class_name="bg-green-50 px-2 py-1 rounded-lg border border-green-100 mt-1 w-fit",
                     ),
-                    class_name="flex justify-between items-center bg-gray-50 p-3 rounded-xl",
+                    class_name="mb-6",
                 ),
                 class_name="",
             ),
             rx.el.div(
-                rx.el.div(
-                    rx.el.span(
-                        "Potential Savings:",
-                        class_name="text-sm text-gray-600 font-medium",
-                    ),
-                    rx.el.span(
-                        f"₹{med['brand_price'] - med['generic_price']}",
-                        class_name="text-sm font-bold text-green-600",
-                    ),
-                    class_name="flex items-center gap-2",
-                ),
                 rx.el.button(
                     "View Full Comparison",
                     on_click=lambda: MedicineState.select_medicine(med["matched_id"]),
-                    class_name="text-xs font-bold text-blue-600 hover:text-blue-700 underline transition-colors",
+                    class_name="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold py-3 rounded-xl transition-all",
                 ),
-                class_name="flex justify-between items-center mt-4 pt-4 border-t border-gray-50",
+                class_name="mt-2 pt-4 border-t border-gray-50",
             ),
             class_name="p-6",
         ),
-        class_name="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow",
+        class_name="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300",
     )
 
 
@@ -157,36 +169,51 @@ def results_summary() -> rx.Component:
     return rx.el.div(
         rx.el.div(
             rx.el.div(
-                rx.icon("message_circle_check", class_name="h-8 w-8 text-green-500"),
+                rx.el.div(
+                    rx.icon(
+                        "message_circle_check", class_name="h-10 w-10 text-green-500"
+                    ),
+                    class_name="p-3 bg-green-50 rounded-2xl",
+                ),
                 rx.el.div(
                     rx.el.h3(
                         "Analysis Complete",
-                        class_name="text-xl font-bold text-gray-900",
+                        class_name="text-2xl font-extrabold text-gray-900",
                     ),
                     rx.el.p(
-                        f"Successfully extracted {MedicineState.extracted_medicines.length()} medicines from your prescription.",
+                        rx.el.span(
+                            f"{MedicineState.extracted_medicines.length()} items identified "
+                        ),
+                        rx.el.span(
+                            "verified by medical AI engine",
+                            class_name="font-bold text-blue-600",
+                        ),
                         class_name="text-sm text-gray-500",
                     ),
                 ),
-                class_name="flex items-center gap-4",
+                class_name="flex items-center gap-5",
             ),
             rx.el.div(
                 rx.el.div(
                     rx.el.p(
-                        "Total Monthly Savings",
-                        class_name="text-[10px] font-bold text-green-700 uppercase",
+                        "Total Potential Savings",
+                        class_name="text-[10px] font-bold text-green-700 uppercase tracking-widest",
                     ),
                     rx.el.p(
                         f"₹{MedicineState.total_savings}",
-                        class_name="text-2xl font-black text-green-600",
+                        class_name="text-3xl font-black text-green-600",
+                    ),
+                    rx.el.p(
+                        "per treatment cycle",
+                        class_name="text-[10px] text-gray-400 font-medium text-right",
                     ),
                     class_name="text-right",
                 ),
-                class_name="bg-green-50 px-6 py-3 rounded-2xl border border-green-100",
+                class_name="bg-green-50/50 px-8 py-5 rounded-[2rem] border-2 border-green-100 shadow-inner",
             ),
-            class_name="flex flex-col md:flex-row md:items-center justify-between gap-6",
+            class_name="flex flex-col md:flex-row md:items-center justify-between gap-8",
         ),
-        class_name="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-8",
+        class_name="bg-white rounded-[2.5rem] border border-gray-100 shadow-lg p-10 mb-12",
     )
 
 
