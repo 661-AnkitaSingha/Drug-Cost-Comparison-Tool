@@ -14,6 +14,11 @@ class ExtractedMedicine(TypedDict):
     brand_price: float
     generic_price: float
     expiry_date: str
+    dosage: str
+    frequency: str
+    duration: str
+    needs_review: bool
+    review_reason: str
 
 
 class Medicine(TypedDict):
@@ -1007,6 +1012,12 @@ class MedicineState(rx.State):
             total += med["brand_price"] - med["generic_price"]
         return round(total, 2)
 
+    @rx.var
+    def items_needing_review(self) -> int:
+        return sum(
+            (1 for med in self.extracted_medicines if med.get("needs_review", False))
+        )
+
     def _get_expiry_status(self, expiry_date_str: str) -> dict[str, str | int]:
         try:
             expiry = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
@@ -1115,55 +1126,125 @@ class MedicineState(rx.State):
         self.ocr_complete = False
         self.extracted_medicines = []
         self.processing_step = "Uploading image..."
-        for i in range(0, 31, 10):
+        for i in range(0, 21, 10):
             self.ocr_progress = i
             yield
-            await asyncio.sleep(0.3)
-        self.processing_step = "Running OCR analysis..."
-        for i in range(30, 61, 10):
+            await asyncio.sleep(0.2)
+        self.processing_step = "Running OCR text recognition..."
+        for i in range(20, 41, 10):
             self.ocr_progress = i
             yield
-            await asyncio.sleep(0.3)
-        self.processing_step = "Identifying medicines..."
-        for i in range(60, 81, 10):
+            await asyncio.sleep(0.2)
+        self.processing_step = "Identifying medicine names and dosages..."
+        for i in range(40, 61, 10):
             self.ocr_progress = i
             yield
-            await asyncio.sleep(0.3)
-        self.processing_step = "Matching generic alternatives..."
-        for i in range(80, 101, 10):
+            await asyncio.sleep(0.2)
+        self.processing_step = "Scoring extraction confidence..."
+        for i in range(60, 76, 5):
             self.ocr_progress = i
             yield
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.15)
+        self.processing_step = "Matching verified generic alternatives..."
+        for i in range(75, 91, 5):
+            self.ocr_progress = i
+            yield
+            await asyncio.sleep(0.15)
+        self.processing_step = "Computing price comparisons..."
+        for i in range(90, 101, 5):
+            self.ocr_progress = i
+            yield
+            await asyncio.sleep(0.15)
         self.extracted_medicines = [
             {
-                "name": "Crocin 500mg",
-                "confidence": 95,
-                "matched_id": "1",
-                "generic_name": "Paracetamol",
-                "salt_composition": "Paracetamol 500mg",
-                "brand_price": 40.0,
-                "generic_price": 12.0,
-                "expiry_date": "2025-08-15",
-            },
-            {
-                "name": "Pan 40",
-                "confidence": 92,
-                "matched_id": "5",
-                "generic_name": "Pantoprazole",
-                "salt_composition": "Pantoprazole (40mg)",
-                "brand_price": 150.0,
-                "generic_price": 40.0,
-                "expiry_date": "2025-08-01",
-            },
-            {
-                "name": "Augmentin 625",
-                "confidence": 88,
+                "name": "Augmentin 625 Duo",
+                "confidence": 96,
                 "matched_id": "2",
                 "generic_name": "Amoxycillin + Clavulanic Acid",
                 "salt_composition": "Amoxycillin (500mg) + Clavulanic Acid (125mg)",
                 "brand_price": 200.0,
                 "generic_price": 85.0,
                 "expiry_date": "2025-10-15",
+                "dosage": "625mg",
+                "frequency": "Twice daily (BD)",
+                "duration": "7 days",
+                "needs_review": False,
+                "review_reason": "",
+            },
+            {
+                "name": "Pan 40",
+                "confidence": 93,
+                "matched_id": "5",
+                "generic_name": "Pantoprazole",
+                "salt_composition": "Pantoprazole (40mg)",
+                "brand_price": 150.0,
+                "generic_price": 40.0,
+                "expiry_date": "2025-08-01",
+                "dosage": "40mg",
+                "frequency": "Once daily before breakfast (OD AC)",
+                "duration": "14 days",
+                "needs_review": False,
+                "review_reason": "",
+            },
+            {
+                "name": "Crocin 500",
+                "confidence": 91,
+                "matched_id": "1",
+                "generic_name": "Paracetamol",
+                "salt_composition": "Paracetamol 500mg",
+                "brand_price": 40.0,
+                "generic_price": 12.0,
+                "expiry_date": "2025-08-15",
+                "dosage": "500mg",
+                "frequency": "Three times daily (TDS) SOS",
+                "duration": "As needed",
+                "needs_review": False,
+                "review_reason": "",
+            },
+            {
+                "name": "Allegra 120",
+                "confidence": 89,
+                "matched_id": "4",
+                "generic_name": "Fexofenadine",
+                "salt_composition": "Fexofenadine (120mg)",
+                "brand_price": 180.0,
+                "generic_price": 60.0,
+                "expiry_date": "2025-12-01",
+                "dosage": "120mg",
+                "frequency": "Once daily (OD)",
+                "duration": "10 days",
+                "needs_review": False,
+                "review_reason": "",
+            },
+            {
+                "name": "Glycomet GP 0.5",
+                "confidence": 78,
+                "matched_id": "7",
+                "generic_name": "Metformin",
+                "salt_composition": "Metformin (500mg)",
+                "brand_price": 60.0,
+                "generic_price": 18.0,
+                "expiry_date": "2025-08-20",
+                "dosage": "500mg",
+                "frequency": "Twice daily with meals (BD PC)",
+                "duration": "Ongoing",
+                "needs_review": True,
+                "review_reason": "Low OCR confidence — handwriting partially unclear. Verify: is this Glycomet GP 0.5 or Glycomet SR 500?",
+            },
+            {
+                "name": "Wnlok-D3 60K",
+                "confidence": 62,
+                "matched_id": "",
+                "generic_name": "Cholecalciferol (Vitamin D3)",
+                "salt_composition": "Cholecalciferol 60,000 IU",
+                "brand_price": 120.0,
+                "generic_price": 45.0,
+                "expiry_date": "2026-06-01",
+                "dosage": "60,000 IU",
+                "frequency": "Once weekly",
+                "duration": "8 weeks",
+                "needs_review": True,
+                "review_reason": "Unclear handwriting — brand name uncertain. Could be 'Uprise-D3 60K' or 'Wnlok-D3 60K'. Please verify with pharmacist.",
             },
         ]
         self.is_processing = False
